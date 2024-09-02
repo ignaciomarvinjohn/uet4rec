@@ -17,12 +17,16 @@ For inquiries, kindly send an email to mjci@sju.ac.kr.
 
 # Citation
 ```
-@article{wang2024uet4rec,
-  title={UET4Rec: U-net encapsulated transformer for sequential recommender},
-  author={Wang, Jia and Ignacio, Marvin John and Yu, Seunghee and Jin, Hulin and Kim, Yong-Guk},
-  journal={Expert Systems with Applications},
-  pages={124781},
-  year={2024},
-  publisher={Elsevier}
+@article{WANG2024124781,
+title = {UET4Rec: U-net encapsulated transformer for sequential recommender},
+journal = {Expert Systems with Applications},
+volume = {255},
+pages = {124781},
+year = {2024},
+issn = {0957-4174},
+doi = {https://doi.org/10.1016/j.eswa.2024.124781},
+url = {https://www.sciencedirect.com/science/article/pii/S0957417424016488},
+author = {Jia Wang and Marvin John Ignacio and Seunghee Yu and Hulin Jin and Yong-Guk Kim},
+keywords = {Recommender, Sequential model, U-net, Transformer, Reinforcement learning, Contrastive learning}
 }
 ```
