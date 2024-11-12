@@ -17,7 +17,7 @@ For inquiries, kindly send an email to mjci@sju.ac.kr.
 # Other Links
 - **Meme Analysis using LLM-based Contextual Information and U-net Encapsulated Transformer** | [paper](https://ieeexplore.ieee.org/document/10589379) | [Github](https://github.com/ignaciomarvinjohn/meme-uet-hmt)
 - **VisUET** | [Github](https://github.com/ignaciomarvinjohn/visuet)
-- **UET for NLP** | [Github](https://github.com/ignaciomarvinjohn/uet-nlp)
+- **UET Language Model** | [Github](https://github.com/ignaciomarvinjohn/uetlm)
 
 
 # Citation
