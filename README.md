@@ -4,7 +4,7 @@ This is the main repository for the paper "UET4Rec: U-net Encapsulated Transform
 
 You can access the paper [here](https://www.sciencedirect.com/science/article/pii/S0957417424016488).
 
-**Code will be provided this October! (Sorry, got busy!)**
+**Code will be provided this December! (Sorry, we're busy finishing another paper!)**
 
 # Updates
 - 2024/07/14: Paper is published in Expert Systems with Applications.
