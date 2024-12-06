@@ -18,6 +18,7 @@ For inquiries, kindly send an email to mjci@sju.ac.kr.
 - **Meme Analysis using LLM-based Contextual Information and U-net Encapsulated Transformer** | [paper](https://ieeexplore.ieee.org/document/10589379) | [Github](https://github.com/ignaciomarvinjohn/meme-uet-hmt)
 - **U-Net Encapsulated Transformer for Reducing Dimensionality in Training Large Language Models** | [Github](https://github.com/ignaciomarvinjohn/uetlm)
 - **VisUET (tentative)** | [Github](https://github.com/ignaciomarvinjohn/visuet)
+- **UETspeech (tentative)** | [Github](https://github.com/ignaciomarvinjohn/uetspeech)
 
 
 # Citation
