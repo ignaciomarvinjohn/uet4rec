@@ -13,6 +13,54 @@ You can access the paper [here](https://www.sciencedirect.com/science/article/pi
 
 # Updates
 - 2024/07/14: Paper is published in Expert Systems with Applications.
+- 2024/12/13: Code v1 ()is uploaded.
+
+# Setup
+
+## Dependencies
+Our work is developed using the Windows 10 operating system. We used a conda environment with the following dependencies:
+- Python 3.10 (needed to open pandas pickle file)
+- Cuda Toolkit 11.8
+- PyTorch 2.5
+- Others: numpy, pandas, tqdm
+
+## Dataset
+You can download our sample dataset from this [link](https://drive.google.com/drive/folders/1Oc10Y51UlaoT02l77IMheu9v6oQ0R-BZ?usp=sharing). The current code version only supports training. We will upload validation and test datasets once the updated version is uploaded. Take note that this dataset is under the [**CC BY-NC-ND 4.0**](https://creativecommons.org/licenses/by-nc-nd/4.0/) license. Any violation is punishable by law.
+
+If you want to create your custom dataset, you can make a pandas pickle file in this format:
+- current_state (list(int)): contains the sequence input for the current state
+- next_state (list(int)): contains the sequence input for the next state
+- action (int): item selected by the user in the current state to transition to the next state
+- current_state_length (int): number of items in the current state
+- next_state_length (int): number of items in the next state
+- is_done (boolean): True if the next state is the last sequence, False otherwise
+
+You must add a column to define the rewards depending on the dataset type.
+- For a dataset that contains clicks and purchases, add is_purchased (bool) column.
+- For a dataset that contains ratings, add rating (int) column.
+
+Notes:
+- Our code dervies the sequence length (block_size) based on the length of the current_state and next_state. Therefore, it should be consistent throughout (e.g., all lists must have a length of 10 if $`N=10`$).
+- The item (token) numbers should be from $`0,\cdots,V-1`$, where $`V`$ is the number of unique items in the dataset.
+- We use the number $`V`$ as the padding token, and thus, there are $`V+1`$ tokens in total.
+
+## Dataset Class
+
+Dataset classes are defined in lib/dataset.py. They should handle the loading of the samples and the computation of the rewards. We already defined two classes used in our paper.
+- ClickPurchaseDataset: for datasets that use clicks/purchases like RC15 and RetailRocket
+- RatingsDataset: for datasets that use ratings like Movielens and Beauty
+
+You can create your custom dataset class. Just follow the other two classes for reference.
+
+# Training
+
+All variables and hyperparameters are defined in the config dictionary inside train.py for convenience.
+
+Just run the train.py, and you're ready to go.
+
+# TODO List
+
+We are still re-coding the evaluation and test. We will upload it immediately once it is done.
 
 # Notes
 If you have concerns or suggestions regarding our GitHub, don't hesitate to message us. We want to improve this as much as possible, so your comments are welcome!
