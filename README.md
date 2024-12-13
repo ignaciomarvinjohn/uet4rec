@@ -13,7 +13,7 @@ You can access the paper [here](https://www.sciencedirect.com/science/article/pi
 
 # Updates
 - 2024/07/14: Paper is published in Expert Systems with Applications.
-- 2024/12/13: Code v1 ()is uploaded.
+- 2024/12/13: Code v1 is uploaded.
 
 # Setup
 
