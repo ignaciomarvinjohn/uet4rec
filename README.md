@@ -52,9 +52,19 @@ You can create your custom dataset class. Just follow the other two classes for 
 
 # Training
 
-All variables and hyperparameters are defined in the config dictionary inside train.py for convenience.
+All variables and hyperparameters are defined in the **config** dictionary inside train.py for convenience.
 
 Just run the train.py, and you're ready to go.
+
+# Customization
+
+Our highly modular code can easily be modified to meet your needs. For example, our training loop in the main program uses the **tran_model()** function, which represents one iteration.
+
+The train_model() calls **forward_pass()** and **compute_loss()** before performing backpropagation.
+
+You can do custom feedforward in the forward_pass() and add or remove loss functions in the compute_loss().
+
+We also use dictionaries to handle inputs and outputs easily.
 
 # TODO List
 
