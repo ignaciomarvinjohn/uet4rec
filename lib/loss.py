@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import torch.distributions as dist
 
+
 # Double Q-Learning loss function
 def dq_loss_fn(forward_output, action, reward, discount):
     # select the best action based on main Q-values
@@ -42,7 +43,6 @@ def awac_loss_fn(forward_output, qa_state, action, discount, negative_reward):
     loss = (-logp_pi * weights).mean()
 
     return loss
-
 
 
 # InfoNCE loss function

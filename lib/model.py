@@ -4,8 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+# UET4Rec (UET + MA)
 class UET4Rec(torch.nn.Module):
-
     def __init__(self, config):
         super(UET4Rec, self).__init__()
         
@@ -94,21 +94,21 @@ class UET(nn.Module):
         
         # Encoder
         self.enc1 = nn.Sequential(
-            nn.Conv1d(in_channels=config['emb_1'], out_channels=config['emb_2'], kernel_size=5, stride=1, padding=2),
+            nn.Conv1d(in_channels=config['emb_1'], out_channels=config['emb_2'], kernel_size=config['kernel_size'], stride=config['stride'], padding=config['padding']),
             nn.BatchNorm1d(config['emb_2']),
             nn.LeakyReLU(negative_slope=config['negative_slope']),
             nn.Dropout(p=config['unet_dropout'])
         )
         
         self.enc2 = nn.Sequential(
-            nn.Conv1d(in_channels=config['emb_2'], out_channels=config['emb_3'], kernel_size=5, stride=1, padding=2),
+            nn.Conv1d(in_channels=config['emb_2'], out_channels=config['emb_3'], kernel_size=config['kernel_size'], stride=config['stride'], padding=config['padding']),
             nn.BatchNorm1d(config['emb_3']),
             nn.LeakyReLU(negative_slope=config['negative_slope']),
             nn.Dropout(p=config['unet_dropout'])
         )
         
         self.enc3 = nn.Sequential(
-            nn.Conv1d(in_channels=config['emb_3'], out_channels=config['emb_4'], kernel_size=5, stride=1, padding=2),
+            nn.Conv1d(in_channels=config['emb_3'], out_channels=config['emb_4'], kernel_size=config['kernel_size'], stride=config['stride'], padding=config['padding']),
             nn.BatchNorm1d(config['emb_4']),
             nn.LeakyReLU(negative_slope=config['negative_slope']),
             nn.Dropout(p=config['unet_dropout'])
@@ -120,21 +120,21 @@ class UET(nn.Module):
             
         # Decoder
         self.dec1 = nn.Sequential(
-            nn.Conv1d(in_channels=config['emb_4'], out_channels=config['emb_3'], kernel_size=5, stride=1, padding=2),
+            nn.Conv1d(in_channels=config['emb_4'], out_channels=config['emb_3'], kernel_size=config['kernel_size'], stride=config['stride'], padding=config['padding']),
             nn.BatchNorm1d(config['emb_3']),
             nn.LeakyReLU(negative_slope=config['negative_slope']),
             nn.Dropout(p=config['unet_dropout'])
         )
         
         self.dec2 = nn.Sequential(
-            nn.Conv1d(in_channels=config['emb_3'], out_channels=config['emb_2'], kernel_size=5, stride=1, padding=2),
+            nn.Conv1d(in_channels=config['emb_3'], out_channels=config['emb_2'], kernel_size=config['kernel_size'], stride=config['stride'], padding=config['padding']),
             nn.BatchNorm1d(config['emb_2']),
             nn.LeakyReLU(negative_slope=config['negative_slope']),
             nn.Dropout(p=config['unet_dropout'])
         )
         
         self.dec3 = nn.Sequential(
-            nn.Conv1d(in_channels=config['emb_2'], out_channels=config['emb_1'], kernel_size=5, stride=1, padding=2),
+            nn.Conv1d(in_channels=config['emb_2'], out_channels=config['emb_1'], kernel_size=config['kernel_size'], stride=config['stride'], padding=config['padding']),
             nn.BatchNorm1d(config['emb_1']),
             nn.LeakyReLU(negative_slope=config['negative_slope']),
             nn.Dropout(p=config['unet_dropout'])
@@ -159,8 +159,8 @@ class UET(nn.Module):
         attn_mask = generate_causal_mask(B, N, x.device)
         
         # perform attention for each transformer block
-        for i in range(len(self.transformer_blocks)):
-            x = self.transformer_blocks[i](x, attn_mask)
+        for block in self.transformer_blocks:
+            x = block(x, attn_mask)
             
         x = torch.transpose(x, 1, 2) # B x N x W -> B x W x N
         
@@ -195,10 +195,10 @@ class CausalTransformerLayer(nn.Module):
         return x
 
 
+# generate causal mask for forward process
 def generate_causal_mask(batch_size, block_size, device):
-    mask = torch.tril(torch.ones(block_size, block_size))  # lower triangular matrix
-    mask = mask.to(device)
-    mask = mask.unsqueeze(0) # add a batch dimension
+    mask = torch.tril(torch.ones(block_size, block_size, device=device))  # lower triangular matrix
+    mask = mask.unsqueeze(0)  # add a batch dimension
     mask = mask.expand(batch_size, -1, -1)  # expand to match the batch size
     return mask
 

@@ -25,7 +25,7 @@ config = {
     'load_model': False,
     'train_model': True,
     'num_epochs': 60,
-    'batch_size': 32,
+    'batch_size': 256, # 120 for Beauty, 256 for the rest
     'log_interval': 500,
     'eval_interval': 2000,
     'discount': 0.5, # RL discount factor
@@ -37,14 +37,17 @@ config = {
     'emb_2': 32,
     'emb_3': 16,
     'emb_4': 8,
+    'kernel_size': 5,
+    'stride': 1,
+    'padding': 2,
     'negative_slope': 0.1,
-    'unet_dropout': 0.2,
-    'n_uet': 1,
-    'n_model_aug': 1,
+    'unet_dropout': 0.7, # 0.7 for Beauty, MovieLens, RetailRocket; 0.15 for RC15
+    'n_uet': 1, # number of UET modules
+    'n_model_aug': 1, # number of MA modules
     'n_head': 1,
     'n_layer': 2, # transformer layer
     'transformer_dropout': 0.1,
-    'pffn_residual': True, # !!!
+    'pffn_residual': True,
     'ma_dropout': 0.5,
     'negative_reward': 1.0,
     'ce_loss_weight': 0.7,
@@ -53,7 +56,8 @@ config = {
     'contrastive_loss_weight': 1.0,
     'seed': 0,
     'purchase_reward': 1.0,
-    'click_reward': 0.2
+    'click_reward': 0.2,
+    'topk': [5, 10, 20]
 }
 
 
@@ -82,19 +86,24 @@ def initialize_dataloader(config, dataset_id):
     
     # load the train dataset
     if dataset_id == 0 or dataset_id == 1:
-        train_dataset = ClickPurchaseDataset(config)
+        dataloader['train'] = DataLoader(ClickPurchaseDataset(config, 'train.df', is_train=True), batch_size=config['batch_size'], shuffle=True)
+        dataloader['val'] = DataLoader(ClickPurchaseDataset(config, 'val.df', is_train=False), batch_size=config['batch_size'], shuffle=False)
+        dataloader['test'] = DataLoader(ClickPurchaseDataset(config, 'test.df', is_train=False), batch_size=config['batch_size'], shuffle=False)
         
     elif dataset_id == 2 or dataset_id == 3:
-        train_dataset = RatingsDataset(config)
+        dataloader['train'] = DataLoader(RatingsDataset(config, 'train.df', is_train=True), batch_size=config['batch_size'], shuffle=True)
+        dataloader['val'] = DataLoader(RatingsDataset(config, 'val.df', is_train=False), batch_size=config['batch_size'], shuffle=False)
+        dataloader['test'] = DataLoader(RatingsDataset(config, 'test.df', is_train=False), batch_size=config['batch_size'], shuffle=False)
         
     else:
         print("Invalid Dataset ID.")
         quit()
         
     # create a dataloader
-    print(f"Done. Dataset type is {type(train_dataset)}")
-    print(f"Number of samples: {len(train_dataset)}")
-    dataloader['train'] = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
+    print(f"Done. Dataset type is {dataloader['train'].dataset.__class__.__name__}")
+    print(f"Number of training samples: {len(dataloader['train'])}")
+    print(f"Number of validation samples: {len(dataloader['val'])}")
+    print(f"Number of test samples: {len(dataloader['test'])}")
     
     return dataloader
 
@@ -129,6 +138,10 @@ def setup_logger(log_file_path, name="logger"):
     # clear existing handlers if reinitializing
     if logger.hasHandlers():
         logger.handlers.clear()
+        
+    # check if the log file exists, if so, remove it
+    if os.path.exists(log_file_path):
+        os.remove(log_file_path)
         
     # file handler for logging to a file
     file_handler = logging.FileHandler(log_file_path)
@@ -263,27 +276,79 @@ def compute_loss(forward_output, batch, config):
 
 
 # evaluate model
-def evaluate_model(main_model, eval_logger):
-    # initialize variables
+def evaluate_model(main_model, dataloader, config, eval_logger, total_steps, is_final):
+    topk = config['topk']
+    scores = dict()
     
-    # set model to eval mode
-    main_model.eval()
+    # initialize metrics
+    scores['total_items'] = 0.0
+    scores['total_rewards'] = [0] * len(topk)
+    scores['hit_scores'] = [0] * len(topk)
+    scores['ndcg_scores'] = [0] * len(topk)
     
-    # load validation dataset
-    
-    total_steps = 0
-    eval_logger.info(f"{total_steps}")
-    
-    # set model back to train mode
-    main_model.train()
-    
+    # for each entry in the val/test dataloader
+    for batch_idx, batch in enumerate(dataloader):
+        
+        # get dataset information
+        scores['dataset_class'] = dataloader.dataset.__class__.__name__
+        if hasattr(dataloader.dataset, 'purchase_reward'):
+            scores['purchase_reward'] = getattr(dataloader.dataset, 'purchase_reward')
+            
+        current_state = batch['current_state'].to(config['device'])
+        current_state_length = batch['current_state_length'].to(config['device'])
+        
+        # predict items and calculate metrics
+        with torch.no_grad():
+            output = main_model(current_state, current_state_length)
+            sorted_list = np.argsort(output['action_selection'].detach().cpu().numpy(), axis=1)
+            
+        scores = compute_metrics(sorted_list, batch, scores, topk)
+        
+    # log results
+    for i, k in enumerate(topk):
+        hr_total = scores['hit_scores'][i] / max(scores['total_items'], 1)
+        ndcg_total = scores['ndcg_scores'][i] / max(scores['total_items'], 1)
+        
+        eval_logger.info(f"{total_steps},{k},{scores['total_rewards'][i]:.4f},{hr_total:.4f},{ndcg_total:.4f}")
+        
+        # display the final scores
+        if is_final:
+            print(f"Top-{k} Results:")
+            print(f"  - Cumulative Reward: {scores['total_rewards'][i]:.4f}")
+            print(f"  - HR: {hr_total:.4f}, NDCG: {ndcg_total:.4f}")
+            
     return
+
+
+# compute all metrics here
+def compute_metrics(predictions, batch, scores, topk):
+    # get action and rewards
+    actions = batch['action'].numpy()
+    rewards = batch['reward'].numpy()
+    
+    # compute Hit Ratio and NDCG
+    for i, k in enumerate(topk):
+        rec_list = predictions[:, -k:]  # top-k predictions for each sample
+        for j in range(len(actions)):  # loop over each sample in the batch
+            true_action = actions[j]
+            true_reward = rewards[j]
+            
+            if true_action in rec_list[j]:
+                rank = k - np.argwhere(rec_list[j] == true_action).flatten()[0]
+                scores['total_rewards'][i] += true_reward
+                
+                if (scores['dataset_class'] != "ClickPurchaseDataset") or (true_reward == scores['purchase_reward']):
+                    scores['hit_scores'][i] += 1.0
+                    scores['ndcg_scores'][i] += 1.0 / np.log2(rank + 1)
+                    scores['total_items'] += 1.0
+    return scores
 
 
 if __name__ == '__main__':
     #==============================================================
     # Step 0: Setup
     #==============================================================
+    main_tic = time.perf_counter()
     np.random.seed(config['seed'])
     config['device'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     config = initialize_config(config, dataset[dataset_id])
@@ -300,13 +365,24 @@ if __name__ == '__main__':
     model['model_1'].to(config['device'])
     model['model_2'].to(config['device'])
     
-    # # load weights [optional]
-    # if config['load_model']:
-        # print("Loading the model from checkpoint.")
+    # load weights [optional]
+    if config['load_model']:
+        print("\n\nLoading the model from checkpoint.")
+        checkpoint = torch.load(os.path.join(config['out_directory'], 'model_checkpoint.pth'), weights_only=True)
+        
+        model['model_1'].load_state_dict(checkpoint['model_1'])
+        model['model_2'].load_state_dict(checkpoint['model_2'])
+        
+        # the old optimizer becomes a warm-up optimizer
+        model['m1_warmup_opt'].load_state_dict(checkpoint['opt_1'])
+        model['m2_warmup_opt'].load_state_dict(checkpoint['opt_2'])
+        
+        print("Done.")
         
     #==============================================================
     # Step 3: Model Training
     #==============================================================
+    total_steps = 0
     if config['train_model']:
         print("\n\nTraining started.")
         tic = time.perf_counter()
@@ -314,7 +390,9 @@ if __name__ == '__main__':
         # create output directory and logger
         os.makedirs(config['out_directory'], exist_ok=True)
         train_logger = setup_logger(config['out_directory'] + "train.log", "train_logger")
+        train_logger.info("step,ce_loss,dq_loss,awac_loss,contrastive_loss,total_loss")
         eval_logger = setup_logger(config['out_directory'] + "eval.log", "eval_logger")
+        eval_logger.info("step,topk,cumulative_reward,hit_rate,ndcg")
         
         # calculate total steps per epoch
         dataset_size = len(dataloader['train'])
@@ -322,7 +400,6 @@ if __name__ == '__main__':
         steps_per_epoch = (dataset_size + batch_size - 1) // batch_size
         
         # initialize
-        total_steps = 0
         model['m1_optimizer'] = model['m1_warmup_opt']
         model['m2_optimizer'] = model['m2_warmup_opt']
         
@@ -343,12 +420,14 @@ if __name__ == '__main__':
                 
                 # log the metrics per 'log_interval'
                 if total_steps % config['log_interval'] == 0:
-                    log_entry = f"{total_steps}, {loss['ce_loss'].item():.6f}, {loss['dq_loss'].item():.6f}, {loss['awac_loss'].item():.6f}, {loss['contrastive_loss'].item():.6f}, {loss['total_loss'].item():.6f}"
+                    log_entry = f"{total_steps},{loss['ce_loss'].item():.6f},{loss['dq_loss'].item():.6f},{loss['awac_loss'].item():.6f},{loss['contrastive_loss'].item():.6f},{loss['total_loss'].item():.6f}"
                     train_logger.info(log_entry)
                     
-                # # evaluate per 'eval_interval'
-                # if total_steps % config['eval_interval'] == 0:
-                    # evaluate_model(model['main'], eval_logger)
+                # evaluate per 'eval_interval'
+                if total_steps % config['eval_interval'] == 0:
+                    model['main'].eval()
+                    evaluate_model(model['main'], dataloader['val'], config, eval_logger, total_steps, False)
+                    model['main'].train()
                     
                 # switch optimizer once the switch_interval is reached
                 if total_steps == config['switch_interval']:
@@ -356,17 +435,40 @@ if __name__ == '__main__':
                     model['m1_optimizer'] = model['m1_main_opt']
                     model['m2_optimizer'] = model['m2_main_opt']
                     
+        # store the final train/val values
+        log_entry = f"{total_steps},{loss['ce_loss'].item():.6f},{loss['dq_loss'].item():.6f},{loss['awac_loss'].item():.6f},{loss['contrastive_loss'].item():.6f},{loss['total_loss'].item():.6f}"
+        train_logger.info(log_entry)
+        
+        print("\n\nEvaluating the model on validation dataset.")
+        model['main'].eval()
+        evaluate_model(model['main'], dataloader['val'], config, eval_logger, total_steps, True)
+        model['main'].train()
+        print("Done.")
+        
         toc = time.perf_counter()
         mins = (toc - tic) / 60
-        print(f"Total training time: {mins:.4f} minutes")
+        print(f"\nTotal training time: {mins:.4f} minutes")
         
         # save the model
-        
+        torch.save({
+            'model_1': model['main'].state_dict(),
+            'model_2': model['target'].state_dict(),
+            'opt_1': model['m1_optimizer'].state_dict(),
+            'opt_2': model['m2_optimizer'].state_dict(),
+        }, os.path.join(config['out_directory'], 'model_checkpoint.pth'))
         
     #==============================================================
     # Step 4: Model Evaluation
     #==============================================================
-    print("Evaluating the model.")
-    # evaluate_model(model['main'], eval_logger)
-    quit()
+    print("\n\nEvaluating the model on test dataset.")
+    test_logger = setup_logger(config['out_directory'] + "test.log", "test_logger")
+    test_logger.info("step, topk, cumulative_reward, hit_rate, ndcg")
+    
+    model['main'].eval()
+    evaluate_model(model['main'], dataloader['test'], config, test_logger, total_steps, True)
+    print("Done.")
+    
+    main_toc = time.perf_counter()
+    mins = (main_toc - main_tic) / 60
+    print(f"\nProgram finished after {mins:.4f} minutes.")
 
