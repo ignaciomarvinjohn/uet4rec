@@ -5,13 +5,14 @@ This is the main repository for the paper "UET4Rec: U-net Encapsulated Transform
 You can access the paper [here](https://www.sciencedirect.com/science/article/pii/S0957417424016488).
 
 # Abstract
- <div align="justify">
+<div align="justify">
 &ensp;&ensp;&ensp;&ensp;&ensp;Recommending a tempting sequence of items according to a user’s previous history of purchases and clicks, for instance, in the online shopping portals is challenging. And yet it is a crucial task for all service providers. One of the core components in the recommender systems is a sequential model with which an input sequence is transformed into the predicted items. Among many, deep neural networks, such as RNN, LSTM, and Transformer, have been favored for this purpose. However, improving the performance of these models remains an important task. To address this, we propose a novel sequential model by combining a U-net and Transformer, called U-net Encapsulated Transformer. This hybrid architecture places a transformer model between a convolutional encoder and its decoder, wherein each convolutional layer processes 1D signal, i.e. text. The primary benefit of this structure is that the computational burden is reduced since the embedding size of the input to the Transformer is drastically decreased as the signal has to go through the multi-layer convolutional encoder. This solution leverages recommendation lists for action predictions and uses user feedback as direct rewards for updating the model. In addition, the loss function mechanism is improved by including contrastive and reinforcement learning losses. Evaluation of the proposed model, including extensive ablation study, is carried out on four standard benchmark datasets, such as RC15, RetailRocket, MovieLens-1M, and Amazon-Beauty, demonstrating superior performance compared to state-of-the-art methods.
 </div>
 
 # Updates
 - 2024/07/14: Paper is published in Expert Systems with Applications.
-- 2024/12/13: Code v1 is uploaded.
+- 2024/12/13: Code v1 is uploaded. Includes base code for training.
+- 2024/12/23: Code v2 is uploaded. Includes model evaluation.
 
 # Setup
 
@@ -23,9 +24,9 @@ Our work is developed using the Windows 10 operating system. We used a conda env
 - Others: numpy, pandas, tqdm
 
 ## Dataset
-You can download our sample dataset from this [link](https://drive.google.com/drive/folders/1Oc10Y51UlaoT02l77IMheu9v6oQ0R-BZ?usp=sharing). The current code version only supports training. We will upload validation and test datasets once the updated version is uploaded. Take note that this dataset is under the [**CC BY-NC-ND 4.0**](https://creativecommons.org/licenses/by-nc-nd/4.0/) license. Any violation is punishable by law.
+You can download our sample dataset from this [link](https://drive.google.com/drive/folders/1Oc10Y51UlaoT02l77IMheu9v6oQ0R-BZ?usp=sharing). Take note that this dataset is under the [**CC BY-NC-ND 4.0**](https://creativecommons.org/licenses/by-nc-nd/4.0/) license. Any violation is punishable by law.
 
-If you want to create your custom dataset, you can make a pandas pickle file in this format:
+If you want to create your custom training dataset, you can make a pandas pickle file in this format:
 - current_state (list(int)): contains the sequence input for the current state
 - next_state (list(int)): contains the sequence input for the next state
 - action (int): item selected by the user in the current state to transition to the next state
@@ -34,8 +35,10 @@ If you want to create your custom dataset, you can make a pandas pickle file in 
 - is_done (boolean): True if the next state is the last sequence, False otherwise
 
 You must add a column to define the rewards depending on the dataset type.
-- For a dataset that contains clicks and purchases, add is_purchased (bool) column.
-- For a dataset that contains ratings, add rating (int) column.
+- For a dataset that contains clicks and purchases, add the is_purchased (bool) column.
+- For a dataset that contains ratings, add a rating (int) column.
+
+The validation and test datasets are similar in format to the training dataset, just without the next_state, next_state_length, and is_done.
 
 Notes:
 - Our code dervies the sequence length (block_size) based on the length of the current_state and next_state. Therefore, it should be consistent throughout (e.g., all lists must have a length of 10 if $`N=10`$).
@@ -52,7 +55,7 @@ You can create your custom dataset class. Just follow the other two classes for 
 
 # Training
 
-All variables and hyperparameters are defined in the **config** dictionary inside train.py for convenience.
+For convenience, all variables and hyperparameters are defined in the **config** dictionary inside train.py.
 
 Just run the train.py, and you're ready to go.
 
@@ -65,10 +68,6 @@ The train_model() calls **forward_pass()** and **compute_loss()** before perform
 You can do custom feedforward in the forward_pass() and add or remove loss functions in the compute_loss().
 
 We also use dictionaries to handle inputs and outputs easily.
-
-# TODO List
-
-We are still re-coding the evaluation and test. We will upload it immediately once it is done.
 
 # Notes
 If you have concerns or suggestions regarding our GitHub, don't hesitate to message us. We want to improve this as much as possible, so your comments are welcome!
