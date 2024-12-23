@@ -40,6 +40,20 @@ You must add a column to define the rewards depending on the dataset type.
 
 The validation and test datasets are similar in format to the training dataset, just without the next_state, next_state_length, and is_done.
 
+All datasets should be under the *dataset* folder and contain the train.df, val.df, and test.df files. The directory structure should be like:
+```
+dataset
+   |-- retailrocket
+   |   |-- train.df
+   |   |-- val.df
+   |   |-- test.df
+   ...
+   |-- custom_dataset_name
+   |   |-- train.df
+   |   |-- val.df
+   |   |-- test.df
+```
+
 Notes:
 - Our code derives the sequence length (block_size) based on the length of the current_state. Therefore, it should be consistent throughout (e.g., all lists must have a length of 10 if $`N=10`$).
 - The item (token) numbers should be from $`0,\cdots,V-1`$, where $`V`$ is the number of unique items in the dataset.
@@ -63,11 +77,12 @@ For convenience, all variables and hyperparameters are defined in the *config* d
 2. The parameter *experiment_number* indicates a specific run given a dataset. All log files and model files are stored in output/*dataset_name*/*experiment_number* folder.
 3. The embedding sizes (emb_1, emb_2, emb_3, emb_4) are set manually, and the U-Net layers in the UET model class are defined separately. We did this so you can easily edit the architecture, such as adding/removing a U-Net layer or changing its functions.
 
-Just run
+Select the dataset by setting *dataset_id*. If you have a custom dataset, add the folder name inside the *dataset* list and set the appropriate dataset_id.
+
+Once you've set the dataset and config parameters, you can run:
 ```
 python train.py
 ```
-and you're ready to go.
 
 # Customization
 
