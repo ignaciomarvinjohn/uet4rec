@@ -56,15 +56,24 @@ You can create your custom dataset class. Just follow the other two classes for 
 
 # Training
 
-For convenience, all variables and hyperparameters are defined in the **config** dictionary inside train.py.
+For convenience, all variables and hyperparameters are defined in the *config* dictionary inside *train.py*. Here are some important notes:
+1. We standardized the terminologies to match the Transformer literature. Thus:
+   - *vocab_size* corresponds to the total number of items + the padding token
+   - *block_size* corresponds to the sequence length
+2. The parameter *experiment_number* indicates a specific run given a dataset. All log files and model files are stored in output/*dataset_name*/*experiment_number* folder.
+3. The embedding sizes (emb_1, emb_2, emb_3, emb_4) are set manually, and the U-Net layers in the UET model class are defined separately. We did this so you can easily edit the architecture, such as adding/removing a U-Net layer or changing its functions.
 
-Just run the train.py, and you're ready to go.
+Just run
+```
+python train.py
+```
+and you're ready to go.
 
 # Customization
 
-Our highly modular code can easily be modified to meet your needs. For example, our training loop in the main program uses the **tran_model()** function, which represents one iteration.
+Our highly modular code can easily be modified to meet your needs. For example, our training loop in the main program uses the *tran_model()* function, which represents one iteration.
 
-The train_model() calls **forward_pass()** and **compute_loss()** before performing backpropagation.
+The train_model() calls *forward_pass()* and *compute_loss()* before performing backpropagation.
 
 You can do custom feedforward in the forward_pass() and add or remove loss functions in the compute_loss().
 
