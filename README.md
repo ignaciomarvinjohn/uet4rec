@@ -84,6 +84,12 @@ Once you've set the dataset and config parameters, you can run:
 python train.py
 ```
 
+The code will train the model, save the last checkpoint to the output/*dataset_name*/*experiment_number* folder, and evaluate the model for the validation and test datasets.
+
+# Evaluation
+
+You can directly evaluate a trained model for the test dataset by setting the *load_model* to True and *train_model* to False and running the train.py.
+
 # Customization
 
 Our highly modular code can easily be modified to meet your needs. For example, our training loop in the main program uses the *tran_model()* function, which represents one iteration.
