@@ -41,9 +41,10 @@ You must add a column to define the rewards depending on the dataset type.
 The validation and test datasets are similar in format to the training dataset, just without the next_state, next_state_length, and is_done.
 
 Notes:
-- Our code dervies the sequence length (block_size) based on the length of the current_state and next_state. Therefore, it should be consistent throughout (e.g., all lists must have a length of 10 if $`N=10`$).
+- Our code derives the sequence length (block_size) based on the length of the current_state. Therefore, it should be consistent throughout (e.g., all lists must have a length of 10 if $`N=10`$).
 - The item (token) numbers should be from $`0,\cdots,V-1`$, where $`V`$ is the number of unique items in the dataset.
 - We use the number $`V`$ as the padding token, and thus, there are $`V+1`$ tokens in total.
+- Our code assumes that the largest token number in the current_state and next_state is the padding number. Still, you can explicitly define the vocab_size (total number of items) in the config.
 
 ## Dataset Class
 
